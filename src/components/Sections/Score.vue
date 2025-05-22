@@ -113,10 +113,12 @@ const canSubmit = computed(() => {
 
 const loadSubmitStatus = async () => {
     try {
-        const { data } = await axios.get('/student/info')
+        const { data } = await axios.get('/api/student/info')
         state.currentSubmitTimes = data.max_rated_round || 0
+        state.currentGroup = data.group || '未分组'
     } catch (error) {
         console.error('加载提交状态失败:', error)
+        ElMessage.error('个人信息加载失败')
     }
 }
 
