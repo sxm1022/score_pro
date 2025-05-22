@@ -33,7 +33,7 @@
         <!-- 作品评分表格 -->
         <div class="works-table">
             <div class="table-header">
-                <div class="th name">作品ID</div>
+                <div class="th name">学生ID</div>
                 <div class="th url">作品链接</div>
                 <div class="th innovation">创新性</div>
                 <div class="th professional">专业性</div>
@@ -92,7 +92,7 @@ const state = reactive({
     },
     works: [],
     currentGroup: '未分组',
-    currentSubmitTimes: Number(localStorage.getItem('submitTimes')) || 0 // 从本地存储初始化
+    currentSubmitTimes: Number(localStorage.getItem('submitTimes')) || 0
 })
 
 
@@ -109,6 +109,16 @@ const canSubmit = computed(() => {
             w.total_score !== null
         )
 })
+
+
+const loadSubmitStatus = async () => {
+    try {
+        const { data } = await axios.get('/student/info')
+        state.currentSubmitTimes = data.max_rated_round || 0
+    } catch (error) {
+        console.error('加载提交状态失败:', error)
+    }
+}
 
 // 核心方法
 const getLetterGrade = (score) => GRADE_MAP[score - 1] || 'E'
@@ -167,24 +177,31 @@ const submitAllScores = async () => {
         localStorage.setItem('submitTimes', state.currentSubmitTimes)
 
         ElMessage.success(`成功提交第${state.currentSubmitTimes}次评分（${round}轮）`)
+
+        await loadSubmitStatus()
     } catch (error) {
         const errMsg = error.response?.data?.error
         if (/repeat submmit/i.test(errMsg)) {
             ElMessage.warning('该轮次评分已提交过')
         } else {
-            ElMessage.error('提交失败: ' + (errMsg || '网络错误'))
+            submitting.value = false
         }
     } finally {
         submitting.value = false
     }
 }
 
-// 初始化
+
 onMounted(async () => {
     await fetchTargetWorks()
-    // 定时刷新数据
-    setInterval(() => {
-        if (document.visibilityState === 'visible') fetchTargetWorks()
+    await loadSubmitStatus()
+
+
+    setInterval(async () => {
+        if (document.visibilityState === 'visible') {
+            await fetchTargetWorks()
+            await loadSubmitStatus()
+        }
     }, 120000)
 })
 </script>

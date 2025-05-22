@@ -49,19 +49,19 @@
         </el-row>
 
         <!-- 历史记录 -->
-        <div class="submit-history">
-            <h4>上次提交</h4>
-            <div class="history-detail">
-                <p>时间：{{ state.history?.time || '暂无记录' }}</p>
-                <template v-if="state.history?.url">
-                    <p>
-                        预览：<el-link type="primary" :href="state.history.url" target="_blank">
-                            {{ state.history.url }}
-                        </el-link>
-                    </p>
-                </template>
-                <p v-else class="no-preview">无有效预览链接</p>
-            </div>
+        <div class="submit-history" v-if="state.history.status">
+            <h4>提交历史</h4>
+            <el-descriptions border>
+                <el-descriptions-item label="学号">{{ state.history.student_id }}</el-descriptions-item>
+                <el-descriptions-item label="状态">
+                    <el-tag :type="state.history.status === '已提交' ? 'success' : 'danger'">
+                        {{ state.history.status }}
+                    </el-tag>
+                </el-descriptions-item>
+                <el-descriptions-item label="作品链接" v-if="state.history.preview_url">
+                    <a :href="state.history.preview_url" target="_blank">预览链接</a>
+                </el-descriptions-item>
+            </el-descriptions>
         </div>
     </div>
 </template>
@@ -89,8 +89,9 @@ const formattedDeadline = ref('')
 // 系统配置和记录
 const state = reactive({
     history: {
-        time: '',
-        url: ''
+        student_id: '',
+        status: '',
+        preview_url: ''
     }
 })
 
@@ -138,11 +139,20 @@ const validateFile = (file) => {
 const loadHistory = async () => {
     try {
         const res = await axios.get('/api/submit/history')
-        state.history = res.data || {}
+        state.history = {
+            ...res.data,
+            status: decodeUnicode(res.data.status)
+        }
     } catch (e) {
         ElMessage.error('历史记录加载失败')
         state.history = {}
     }
+}
+
+const decodeUnicode = (str) => {
+    return str.replace(/\\u(\w{4})/gi, (match, grp) => {
+        return String.fromCharCode(parseInt(grp, 16))
+    })
 }
 
 
@@ -292,19 +302,23 @@ onMounted(() => {
 }
 
 .submit-history {
-    border-top: 1px solid #ebeef5;
-    padding-top: 16px;
+    margin-top: 30px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
 
     h4 {
-        margin: 0 0 12px 0;
-        font-size: 14px;
+        margin: 0 0 15px 0;
+        color: #303133;
+        font-size: 16px;
     }
 
-    .history-detail {
-        color: #606266;
+    a {
+        color: #409eff;
+        text-decoration: none;
 
-        p {
-            margin: 6px 0;
+        &:hover {
+            text-decoration: underline;
         }
     }
 }

@@ -1,38 +1,52 @@
 <template>
     <div class="teacher-panel">
         <h2>教师管理</h2>
-        <el-table :data="tableData" border>
-            <el-table-column prop="pair" label="作品对">
-                <template #default="{ row }">
-                    {{ row.pair[0] }} vs {{ row.pair[1] }}
-                </template>
-            </el-table-column>
+        <div class="teacher-controls">
+            <el-button type="primary" @click="handleOpenSecondRound">
+                开启第二轮互评
+            </el-button>
 
-            <el-table-column v-for="reviewer in reviewers" :key="reviewer" :prop="reviewer" :label="'评审 ' + reviewer" />
-        </el-table>
+            <!-- 添加更多管理功能 -->
+            <el-button @click="showDeadlineDialog = true">
+                修改截止时间
+            </el-button>
+        </div>
+
+        <el-dialog v-model="showDeadlineDialog" title="设置截止时间">
+            <el-date-picker v-model="newDeadline" type="datetime" placeholder="选择截止时间" />
+            <template #footer>
+                <el-button @click="showDeadlineDialog = false">取消</el-button>
+                <el-button type="primary" @click="updateDeadline">确认</el-button>
+            </template>
+        </el-dialog>
     </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
+import axios from 'axios'
 
-const reviewers = ref([])
-const tableData = ref([])
+const showDeadlineDialog = ref(false)
+const newDeadline = ref('')
 
-const loadAnalysis = async () => {
+const handleOpenSecondRound = async () => {
     try {
-        const res = await api.get('/analysis')
-        reviewers.value = res.data.reviewers
-        tableData.value = res.data.data.map(d => ({
-            pair: d.pair,
-            ...d
-        }))
-    } catch (e) {
-        console.error('加载分析数据失败', e)
+        await axios.post('/open_second_round')
+        ElMessage.success('第二轮互评已开启')
+    } catch (error) {
+        ElMessage.error('操作失败: ' + (error.response?.data?.error || '未知错误'))
     }
 }
 
-onMounted(() => {
-    loadAnalysis()
-})
+const updateDeadline = async () => {
+    try {
+        await axios.post('/update_deadline', {
+            deadline: newDeadline.value
+        })
+        ElMessage.success('截止时间已更新')
+        showDeadlineDialog.value = false
+    } catch (error) {
+        ElMessage.error('更新失败: ' + (error.response?.data?.error || '未知错误'))
+    }
+}
 </script>
